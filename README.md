@@ -27,11 +27,11 @@
 ```bash
 pip install streamlit polars pandas matplotlib
 
-###  Запуск
+### Запуск
 streamlit run SF_Sreamlit_LAB_2.py
 
 
-###  To-do
+### To-do
 поддержка Excel
 фильтрация данных
 корреляционная матрица
