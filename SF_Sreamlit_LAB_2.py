@@ -1,106 +1,86 @@
 import streamlit as st
+import polars as pl
 import pandas as pd
+import matplotlib.pyplot as plt
+import io
 
-if "first_run" not in st.session_state:
-    st.session_state["first_run"] = True
-if "press_key" not in st.session_state:
-    st.session_state["press_key"] = False
-if "df_2" not in st.session_state:
-    st.session_state["df_2"] = pd.DataFrame()
-if "sel_grp" not in st.session_state:
-    st.session_state["sel_grp"] = ''
-if "sel_arg" not in st.session_state:
-    st.session_state["sel_arg"] = ''
-if "grafik_type" not in st.session_state:
-    st.session_state["grafik_type"] = ''
+st.set_page_config(page_title="CSV Analyzer (Polars)", layout="wide")
 
-st.session_state["arg_2"] = list()
-st.session_state["arg_1"] = list()
-
-@st.cache_data()
-def safe_load_table(file, verbose=False):
-    df = None
+@st.cache_data
+def load_data(file):
     try:
-        if file.name.endswith(".csv"):
-            encodings = ["utf-8", "cp1251"]
-            for enc in encodings:
-                try:
-                    df = pd.read_csv(file, encoding=enc)
-                    break
-                except UnicodeDecodeError:
-                    file.seek(0)
-        elif file.name.endswith(".xls") or file.name.endswith(".xlsx"):
-            df = pd.read_excel(file)
-    except pd.errors.EmptyDataError:
-        if verbose:
-            st.error("Ошибка: Файл пустой")
-            st.stop()
-    except Exception as e:
-        if verbose:
-            st.error(f"Неожиданная ошибка: {str(e)}")
-            st.stop()
+        df = pl.read_csv(file)
+    except:
+        file.seek(0)
+        df = pl.read_csv(file, encoding="cp1251")
     return df
 
-file = st.file_uploader("Загрузите файл с таблицей", type=["csv", "xls", "xlsx"])
+st.title("Анализ CSV (Polars)")
 
-if st.session_state["first_run"]:
-    st.session_state["first_run"] = False
-else:
-    st.session_state["df_1"] = safe_load_table(file, True)
-    st.dataframe(st.session_state["df_1"])
-    df_columns = st.session_state["df_1"].columns.values.tolist()
-    for i in df_columns:
-        if st.session_state["df_1"][i].dtype == 'object':
-            #-----------------------------------------------
-            st.session_state["arg_1"].append(i)
-        if st.session_state["df_1"][i].dtype in ('int8','int16','int32','int64',
-                                                 'uint8','uint16','uint32','uint64',
-                                                 'float32','float64'):
-            st.session_state["arg_2"].append(i)
+file = st.file_uploader("Загрузите CSV файл", type=["csv"])
+
+if file:
+    df = load_data(file)
+
+    st.subheader("Данные")
+    st.dataframe(df.head(100).to_pandas())
+
+    numeric_cols = df.select(pl.NUMERIC_DTYPES).columns
+    text_cols = df.select(pl.Utf8).columns
+
+    st.subheader("Анализ")
 
     col1, col2 = st.columns(2)
+
     with col1:
-        sel_grp = st.selectbox("Выберите колонку для группировки", st.session_state["arg_1"])
+        group_col = st.selectbox("Группировка", text_cols)
+
     with col2:
-        sel_arg = st.selectbox("Выберите колонку для агрегации", st.session_state["arg_2"])
-    agr_type = st.radio(
-        "Выберите тип агрегации", ["mean", "median", "std"], horizontal=True
-    )
+        value_col = st.selectbox("Значение", numeric_cols)
 
-    grafik_type = st.radio(
-        "Выберите тип Графика", ["Линейны график", "Диаграмма рассеивания"], horizontal=True
-    )
+    agg_func = st.radio("Агрегация", ["mean", "median", "std"], horizontal=True)
 
-    is_pressed = st.button("Создать график")
+    chart_type = st.radio("Тип графика", ["Линия", "Scatter"], horizontal=True)
 
-    if is_pressed:
-        if agr_type == "mean":
-            st.session_state["df_2"] = st.session_state["df_1"][[sel_grp, sel_arg]].groupby(sel_grp).mean()
-        if agr_type == "median":
-            st.session_state["df_2"] = st.session_state["df_1"][[sel_grp, sel_arg]].groupby(sel_grp).median()
-        if agr_type == "std":
-            st.session_state["df_2"] = st.session_state["df_1"][[sel_grp, sel_arg]].groupby(sel_grp).std()
-        st.session_state["sel_grp"] = sel_grp
-        st.session_state["sel_arg"] = sel_arg
-        st.session_state["grafik_type"] = grafik_type
-        if grafik_type == "Линейны график":
-            st.line_chart(st.session_state["df_2"],
-                          x_label=st.session_state["sel_grp"],
-                          y_label=st.session_state["sel_arg"])
-        if grafik_type == "Диаграмма рассеивания":
-            st.scatter_chart(st.session_state["df_2"],
-                             x_label=st.session_state["sel_grp"],
-                             y_label=st.session_state["sel_arg"])
-        st.session_state["press_key"] = True
+    if st.button("Построить"):
+        if agg_func == "mean":
+            result = df.groupby(group_col).agg(pl.col(value_col).mean())
+        elif agg_func == "median":
+            result = df.groupby(group_col).agg(pl.col(value_col).median())
+        else:
+            result = df.groupby(group_col).agg(pl.col(value_col).std())
 
-    if st.session_state["press_key"] == False and not st.session_state["df_2"] is None:
-        if st.session_state["grafik_type"] == "Линейны график":
-            st.line_chart(st.session_state["df_2"],
-                        x_label=st.session_state["sel_grp"],
-                        y_label=st.session_state["sel_arg"])
-        if st.session_state["grafik_type"] == "Диаграмма рассеивания":
-            st.scatter_chart(st.session_state["df_2"],
-                             x_label=st.session_state["sel_grp"],
-                             y_label=st.session_state["sel_arg"])
+        result_pd = result.to_pandas()
 
-st.session_state["press_key"] = False
+        st.subheader("Результат")
+        st.dataframe(result_pd)
+
+        fig, ax = plt.subplots()
+
+        if chart_type == "Линия":
+            ax.plot(result_pd[group_col], result_pd[value_col])
+        else:
+            ax.scatter(result_pd[group_col], result_pd[value_col])
+
+        ax.set_xlabel(group_col)
+        ax.set_ylabel(value_col)
+
+        st.pyplot(fig)
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png")
+        st.download_button(
+            "Скачать график",
+            buf.getvalue(),
+            "chart.png",
+            "image/png"
+        )
+
+    st.subheader("Распределение")
+
+    hist_col = st.selectbox("Столбец", numeric_cols)
+
+    fig, ax = plt.subplots()
+    ax.hist(df[hist_col].to_pandas().dropna(), bins=30)
+
+    st.pyplot(fig)
