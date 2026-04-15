@@ -1,8 +1,4 @@
-# Save README under a different filename to avoid permission issues
-
-file_path = "/mnt/data/README_project.md"
-
-readme_content = """# CSV Analyzer (Streamlit + Polars)
+# CSV Analyzer (Streamlit + Polars)
 
 ### Описание
 Данное приложение предназначено для интерактивного анализа табличных данных в формате CSV.
@@ -28,19 +24,15 @@ readme_content = """# CSV Analyzer (Streamlit + Polars)
 6. Визуализация.
 
 ### Установка зависимостей
+```bash
 pip install streamlit polars pandas matplotlib
 
-### Запуск
+###Запуск
 streamlit run SF_Sreamlit_LAB_2.py
 
-### To-do
-- поддержка Excel
-- фильтрация данных
-- корреляционная матрица
-- улучшение интерфейса
-"""
 
-with open(file_path, "w", encoding="utf-8") as f:
-    f.write(readme_content)
-
-file_path
+To-do
+поддержка Excel
+фильтрация данных
+корреляционная матрица
+улучшение интерфейса
