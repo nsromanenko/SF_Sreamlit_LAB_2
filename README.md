@@ -1,1 +1,46 @@
-# SF_Sreamlit_LAB_2
+# Save README under a different filename to avoid permission issues
+
+file_path = "/mnt/data/README_project.md"
+
+readme_content = """# CSV Analyzer (Streamlit + Polars)
+
+### Описание
+Данное приложение предназначено для интерактивного анализа табличных данных в формате CSV.
+
+Используется библиотека Polars для обработки данных, обеспечивающая высокую скорость и строгую типизацию. Интерфейс реализован на Streamlit.
+
+Функциональность:
+- загрузка CSV-файла;
+- отображение данных;
+- выбор столбцов;
+- расчет статистики (mean, median, std);
+- построение графиков (линия, scatter);
+- гистограмма распределения;
+- скачивание графиков;
+- кеширование и session state.
+
+Алгоритм:
+1. Загрузка CSV.
+2. Чтение через Polars.
+3. Определение типов данных.
+4. Выбор колонок.
+5. Агрегация.
+6. Визуализация.
+
+### Установка зависимостей
+pip install streamlit polars pandas matplotlib
+
+### Запуск
+streamlit run SF_Sreamlit_LAB_2.py
+
+### To-do
+- поддержка Excel
+- фильтрация данных
+- корреляционная матрица
+- улучшение интерфейса
+"""
+
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(readme_content)
+
+file_path
